@@ -1,3 +1,68 @@
+
+# ==================================================
+# Linear Regression Architecture Workshop
+# Experiment Configuration
+# ==================================================
+
+# --------------------------------------------------
+# 1. Data Sources
+# --------------------------------------------------
+
+data:
+  california_csv: "data/raw/california_housing.csv"
+
+  ontario_raw_csv: "data/raw/statcan_nhpi/18100205.csv"
+
+  ontario_processed_csv: "data/processed/ontario_housing_index.csv"
+
+  statcan_api_url: "https://www150.statcan.gc.ca/t1/wds/rest/getFullTableDownloadCSV/1810020501/en"
+
+  statcan_csv_filename: "18100205.csv"
+
+
+# --------------------------------------------------
+# 2. Database Configuration
+# --------------------------------------------------
+
 database:
-  type: postgresql
-  env_variable: DATABASE_URL
+  type: "postgresql"
+
+  # Read the actual connection URL from the .env file.
+  # Never store database credentials in this YAML file.
+  env_variable: "DATABASE_URL"
+
+  california_table: "california_housing"
+
+  ontario_table: "ontario_housing"
+
+
+# --------------------------------------------------
+# 3. Preprocessing Configuration
+# --------------------------------------------------
+
+preprocessing:
+  test_size: 0.20
+  random_state: 42
+  scaling_method: "standard"
+
+
+# --------------------------------------------------
+# 4. Model Configuration
+# --------------------------------------------------
+
+model:
+  feature: "MedInc"
+  target: "MedHouseVal"
+
+  learning_rate: 0.1
+  iterations: 1000
+
+
+# --------------------------------------------------
+# 5. Experiment Output
+# --------------------------------------------------
+
+experiment:
+  results_path: "experiments/results.csv"
+
+  figures_dir: "experiments/figures"
