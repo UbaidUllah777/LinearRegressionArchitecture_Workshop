@@ -17,6 +17,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+
+from datetime import datetime, timezone
+
+
 from sklearn.metrics import (
     mean_squared_error,
     mean_absolute_error,
@@ -301,13 +305,88 @@ def plot_cost_history(cost_history, save_path=None):
     return fig
 
 
+
+
 # --------------------------------------------------
-# Direct Execution
+# 6. Experiment Tracking
+# --------------------------------------------------
+
+def save_experiment_results(report, config):
+    """
+    Append model evaluation metrics and experiment
+    settings to the configured CSV file.
+    """
+
+    # Get the configured output location
+    results_path = Path(
+        config["experiment"]["results_path"]
+    )
+
+    if not results_path.is_absolute():
+        results_path = PROJECT_ROOT / results_path
+
+    # Create the destination directory if necessary
+    results_path.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    # Create a copy to avoid modifying the original report
+    results = report.copy()
+
+    # Store one shared timestamp for both model results
+    run_timestamp = datetime.now(
+        timezone.utc
+    ).isoformat(timespec="seconds")
+
+    results.insert(
+        0,
+        "run_timestamp_utc",
+        run_timestamp
+    )
+
+    # Record experiment configuration
+    results["feature"] = config["model"]["feature"]
+    results["target"] = config["model"]["target"]
+
+    results["learning_rate"] = config["model"]["learning_rate"]
+    results["iterations"] = config["model"]["iterations"]
+
+    results["test_size"] = config["preprocessing"]["test_size"]
+    results["random_state"] = config["preprocessing"]["random_state"]
+
+    results["scaling_method"] = config["preprocessing"]["scaling_method"]
+
+    results["dataset"] = config["data"]["california_csv"]
+
+    # Write headers only if the CSV is new or empty
+    write_header = (
+        not results_path.exists()
+        or results_path.stat().st_size == 0
+    )
+
+    # Append the experiment results without overwriting older runs
+    results.to_csv(
+        results_path,
+        mode="a",
+        header=write_header,
+        index=False
+    )
+
+    return results_path
+
+
+
+
+
+
+# --------------------------------------------------
+# Direct Execution - Configuration-Driven Experiment
 # --------------------------------------------------
 
 if __name__ == "__main__":
 
-    from src.data_loader import load_csv
+    from src.data_loader import load_config, load_csv
     from src.preprocessing import prepare_data
 
     from src.model import (
@@ -316,14 +395,30 @@ if __name__ == "__main__":
         train_sklearn_model
     )
 
-    print("Testing Evaluation Module...")
+    print("Starting Configuration-Driven Evaluation...")
 
-    # 1. Load and preprocess California housing data
+    # 1. Read settings from YAML
+    config = load_config()
+
+    data_config = config["data"]
+    preprocessing_config = config["preprocessing"]
+    model_config = config["model"]
+    experiment_config = config["experiment"]
+
+    # 2. Load the configured dataset
     df = load_csv(
-        "data/raw/california_housing.csv"
+        data_config["california_csv"]
     )
 
-    prepared = prepare_data(df)
+    # 3. Preprocess using configured parameters
+    prepared = prepare_data(
+        df=df,
+        feature=model_config["feature"],
+        target=model_config["target"],
+        test_size=preprocessing_config["test_size"],
+        random_state=preprocessing_config["random_state"],
+        scaling_method=preprocessing_config["scaling_method"]
+    )
 
     X_train_scaled = prepared["X_train_scaled"]
     X_test_scaled = prepared["X_test_scaled"]
@@ -331,21 +426,21 @@ if __name__ == "__main__":
     y_train = prepared["y_train"]
     y_test = prepared["y_test"]
 
-    # 2. Train from-scratch model
+    # 4. Train the from-scratch implementation
     theta_0, theta_1, cost_history = gradient_descent(
-        X_train_scaled,
-        y_train,
-        learning_rate=0.1,
-        iterations=1000
+        x=X_train_scaled,
+        y=y_train,
+        learning_rate=model_config["learning_rate"],
+        iterations=model_config["iterations"]
     )
 
-    # 3. Train scikit-learn model
+    # 5. Train the scikit-learn implementation
     sk_model = train_sklearn_model(
         X_train_scaled,
         y_train
     )
 
-    # 4. Generate test predictions
+    # 6. Generate testing predictions
     scratch_predictions = predict_from_scratch(
         X_test_scaled,
         theta_0,
@@ -356,43 +451,67 @@ if __name__ == "__main__":
         X_test_scaled
     )
 
-    # 5. Generate evaluation report
+    # 7. Evaluate both models
     report = create_evaluation_report(
         y_test,
         scratch_predictions,
         sklearn_predictions
     )
 
-    print("\nModel Evaluation Results:")
+    print("\nExperiment Evaluation Results:")
     print(report.round(6).to_string(index=False))
 
-    # 6. Save regression comparison
+    # 8. Save experiment metrics to CSV
+    results_path = save_experiment_results(
+        report,
+        config
+    )
+
+    print("\nExperiment results saved to:")
+    print(results_path.relative_to(PROJECT_ROOT))
+
+    # 9. Read configured figure directory
+    figures_dir = Path(
+        experiment_config["figures_dir"]
+    )
+
+    # 10. Save regression comparison
     fig1 = plot_regression_comparison(
-        prepared["X_test"]["MedInc"],
+        prepared["X_test"][model_config["feature"]],
         y_test,
         scratch_predictions,
         sklearn_predictions,
-        save_path="experiments/figures/regression_comparison.png"
+        save_path=figures_dir / "regression_comparison.png"
     )
 
     plt.close(fig1)
 
-    # 7. Save actual vs. predicted graph
+    # 11. Save actual vs. predicted plot
     fig2 = plot_actual_vs_predicted(
         y_test,
         sklearn_predictions,
-        save_path="experiments/figures/actual_vs_predicted.png"
+        save_path=figures_dir / "actual_vs_predicted.png"
     )
 
     plt.close(fig2)
 
-    # 8. Save gradient descent cost graph
+    # 12. Save gradient descent convergence plot
     fig3 = plot_cost_history(
         cost_history,
-        save_path="experiments/figures/cost_history.png"
+        save_path=figures_dir / "cost_history.png"
     )
 
     plt.close(fig3)
 
     print("\nThree evaluation figures saved successfully.")
-    print("Location: experiments/figures/")
+
+    print(
+        "\nBoth models produce approximately equal predictions:",
+        np.allclose(
+            scratch_predictions,
+            sklearn_predictions,
+            atol=1e-4
+        )
+    )
+
+    print("\nExperiment completed successfully!")

@@ -148,44 +148,65 @@ def train_sklearn_model(X_train, y_train):
     return model
 
 
+
+
 # --------------------------------------------------
-# Direct Execution
+# Direct Execution - Configuration Driven
 # --------------------------------------------------
 
 if __name__ == "__main__":
 
-    # These imports are only needed for the module test.
-    # They will not execute when this module is imported.
-    from src.data_loader import load_csv
+    from src.data_loader import load_config, load_csv
     from src.preprocessing import prepare_data
 
     print("Testing Model Module...")
 
-    # Load California housing data
+    # 1. Load experiment configuration
+    config = load_config()
+
+    data_config = config["data"]
+    preprocessing_config = config["preprocessing"]
+    model_config = config["model"]
+
+    # 2. Load the configured dataset
     df = load_csv(
-        "data/raw/california_housing.csv"
+        data_config["california_csv"]
     )
 
-    # Use the reusable preprocessing module
-    prepared = prepare_data(df)
+    # 3. Preprocess using YAML settings
+    prepared = prepare_data(
+        df=df,
+        feature=model_config["feature"],
+        target=model_config["target"],
+        test_size=preprocessing_config["test_size"],
+        random_state=preprocessing_config["random_state"],
+        scaling_method=preprocessing_config["scaling_method"]
+    )
 
     X_train_scaled = prepared["X_train_scaled"]
     y_train = prepared["y_train"]
 
-    # Train the from-scratch implementation
+    # 4. Train from-scratch model using YAML settings
     theta_0, theta_1, cost_history = gradient_descent(
         x=X_train_scaled,
         y=y_train,
-        learning_rate=0.1,
-        iterations=1000
+        learning_rate=model_config["learning_rate"],
+        iterations=model_config["iterations"]
     )
+
+    print("\nConfigured Experiment Settings:")
+
+    print("Feature:", model_config["feature"])
+    print("Target:", model_config["target"])
+    print("Learning rate:", model_config["learning_rate"])
+    print("Iterations:", model_config["iterations"])
 
     print("\nFrom-Scratch Model:")
     print(f"Intercept: {theta_0:.6f}")
     print(f"Slope: {theta_1:.6f}")
     print(f"Final MSE: {cost_history[-1]:.6f}")
 
-    # Train the scikit-learn implementation
+    # 5. Train scikit-learn using the same training data
     sk_model = train_sklearn_model(
         X_train_scaled,
         y_train
@@ -195,7 +216,7 @@ if __name__ == "__main__":
     print(f"Intercept: {sk_model.intercept_:.6f}")
     print(f"Slope: {sk_model.coef_[0]:.6f}")
 
-    # Verify the model parameters
+    # 6. Compare both implementations
     parameters_match = (
         np.isclose(
             theta_0,
@@ -214,3 +235,4 @@ if __name__ == "__main__":
         "\nModel parameters match:",
         parameters_match
     )
+

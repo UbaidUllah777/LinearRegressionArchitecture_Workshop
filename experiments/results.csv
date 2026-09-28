@@ -1,0 +1,5 @@
+run_timestamp_utc,Model,RMSE,MAE,R2,feature,target,learning_rate,iterations,test_size,random_state,scaling_method,dataset
+2026-09-28T05:30:47+00:00,From Scratch,0.8420901241414454,0.6299086530093758,0.45885918903846656,MedInc,MedHouseVal,0.1,1000,0.2,42,standard,data/raw/california_housing.csv
+2026-09-28T05:30:47+00:00,Scikit-learn,0.8420901241414454,0.629908653009376,0.45885918903846656,MedInc,MedHouseVal,0.1,1000,0.2,42,standard,data/raw/california_housing.csv
+2026-09-28T05:33:41+00:00,From Scratch,0.8420901241414454,0.6299086530093758,0.45885918903846656,MedInc,MedHouseVal,0.1,1000,0.2,42,standard,data/raw/california_housing.csv
+2026-09-28T05:33:41+00:00,Scikit-learn,0.8420901241414454,0.629908653009376,0.45885918903846656,MedInc,MedHouseVal,0.1,1000,0.2,42,standard,data/raw/california_housing.csv

@@ -9,6 +9,8 @@ Provides reusable functions for loading data from:
 3. PostgreSQL database
 """
 
+import yaml
+
 import os
 import io
 import zipfile
@@ -28,6 +30,41 @@ from sqlalchemy import create_engine, text
 
 # Identify the project's root directory
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+# --------------------------------------------------
+# Configuration Loader
+# --------------------------------------------------
+
+def load_config(
+    config_path="configs/experiment_config.yaml"
+):
+    """
+    Load experiment settings from a YAML configuration file.
+
+    Relative paths are resolved from the project root.
+    """
+
+    path = Path(config_path)
+
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"Configuration file not found: {path}"
+        )
+
+    with path.open("r", encoding="utf-8") as file:
+        config = yaml.safe_load(file)
+
+    if not isinstance(config, dict):
+        raise ValueError(
+            "The configuration must contain a YAML mapping."
+        )
+
+    return config
+
 
 
 # --------------------------------------------------

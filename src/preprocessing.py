@@ -84,7 +84,8 @@ def prepare_data(
     feature="MedInc",
     target="MedHouseVal",
     test_size=0.20,
-    random_state=42
+    random_state=42,
+    scaling_method="standard"
 ):
     """
     Clean the dataset, split it into training/testing
@@ -119,7 +120,17 @@ def prepare_data(
     )
 
     # Step 4: Create the scaler
+    
+    # Validate the scaling method selected in the configuration
+
+    if scaling_method != "standard":
+        raise ValueError(
+            f"Unsupported scaling method: {scaling_method}"
+        )
+
+    # Standardization is the supported method
     scaler = StandardScaler()
+
 
     # Fit using training data only
     X_train_scaled = scaler.fit_transform(X_train)
@@ -144,22 +155,51 @@ def prepare_data(
 # Direct Execution
 # --------------------------------------------------
 
+
+# --------------------------------------------------
+# Direct Execution - Configuration Driven
+# --------------------------------------------------
+
 if __name__ == "__main__":
+
+    from src.data_loader import load_config, load_csv
 
     print("Testing Preprocessing Module...")
 
-    # Load our previously collected California CSV
-    csv_path = (
-        PROJECT_ROOT / "data" / "raw" /
-        "california_housing.csv"
+    # 1. Load experiment configuration
+    config = load_config()
+
+    data_config = config["data"]
+    preprocessing_config = config["preprocessing"]
+    model_config = config["model"]
+
+    # 2. Load the dataset using its configured path
+    df = load_csv(
+        data_config["california_csv"]
     )
 
-    df = pd.read_csv(csv_path)
+    # 3. Run preprocessing using YAML settings
+    prepared = prepare_data(
+        df=df,
+        feature=model_config["feature"],
+        target=model_config["target"],
+        test_size=preprocessing_config["test_size"],
+        random_state=preprocessing_config["random_state"],
+        scaling_method=preprocessing_config["scaling_method"]
+    )
 
-    # Run the complete preprocessing function
-    prepared = prepare_data(df)
-
+    # 4. Display verification results
     print("\nPreprocessing completed successfully!")
+
+    print(
+        "Selected feature:",
+        model_config["feature"]
+    )
+
+    print(
+        "Selected target:",
+        model_config["target"]
+    )
 
     print(
         "Cleaned dataset shape:",
@@ -174,6 +214,11 @@ if __name__ == "__main__":
     print(
         "Testing shape:",
         prepared["X_test"].shape
+    )
+
+    print(
+        "Scaling method:",
+        preprocessing_config["scaling_method"]
     )
 
     print(
