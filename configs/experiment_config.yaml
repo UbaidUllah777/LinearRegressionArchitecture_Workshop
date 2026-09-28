@@ -1,0 +1,3 @@
+database:
+  type: postgresql
+  env_variable: DATABASE_URL
