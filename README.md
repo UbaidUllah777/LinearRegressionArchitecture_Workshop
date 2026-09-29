@@ -580,6 +580,37 @@ This design reduces code duplication and makes the components easier to maintain
 
 Each module is directly executable and import-safe.
 
+
+### Why the Python Modules Were Kept Separate from the Notebooks ( i did not call them from ipynb)
+
+The original Jupyter notebooks were preserved to document the step-by-step learning and experimentation process, including data collection, EDA, gradient descent implementation, visualizations, and model comparison.
+
+After completing the notebook-based implementation, the core functionality was refactored into four independent Python modules under `src/`.
+
+This approach separates exploratory analysis from reusable application code and supports the workshop's modular architecture objectives.
+
+The decision was made for the following reasons:
+
+- **Preserve the original work:** The notebooks retain the complete exploratory and educational workflow, making it easier to understand how the solution was developed.
+- **Separation of concerns:** Data loading, preprocessing, model training, and evaluation are organized into independent modules with clearly defined responsibilities.
+- **Independent testing:** Each module can be executed directly from the terminal without relying on the execution order or saved state of Jupyter Notebook cells.
+- **Reusability:** The Python functions can be imported and reused by other scripts or future applications.
+- **Reproducibility:** The complete regression pipeline can be executed using a single command, with experiment parameters controlled through the YAML configuration.
+
+The modules were tested individually using:
+
+- `python -m src.data_loader`
+- `python -m src.preprocessing`
+- `python -m src.model`
+- `python -m src.evaluation`
+
+The final command also serves as the complete configuration-driven experiment entry point.
+
+The notebooks and Python modules therefore serve complementary purposes: the notebooks demonstrate the learning process and analysis, while the modules provide the structured, reusable, and independently executable implementation.
+
+This architecture also prepares the project for future extensions such as automated testing, CI/CD integration, and model deployment.
+
+
 ### 14.2 Configuration Management
 
 The project reads experiment settings from `configs/experiment_config.yaml`.
